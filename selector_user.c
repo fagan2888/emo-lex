@@ -461,42 +461,64 @@ int lex_choose(int *cases, double *epsilon, int dimension)
 {
      int pool_size = get_size();
      int *pool = (int *) malloc(pool_size() * sizeof(int));
+     for (int i =0;i<pool_size(); ++i)
+         pool[i] = i;
+
      bool pass = true;
      int c = 0; 
 
      while (pass) 
-     {
+     { 
+         double best_val = 0;
+         int *sel_pool = NULL;
+         int *tmp_pool = NULL;
+
          for (int i = 0; i < pool_size; ++i)
          {
-             double best_val = 0;
-
-             if (i==0 || get_objective_value(cases[c],pool[i]) < best_val + epsilon[cases[c]])
+             if (i==0 || get_objective_value(pool[i],cases[c]) < best_val + epsilon[cases[c]])
              {
-                 best_val = get_objective_value(cases[c],pool[i]);  // reset best val 
+                 best_val = get_objective_value(pool[i],cases[c]);  // reset best val 
                  // restart the winner pool
-                 int *tmp_pool = realloc(pool, sizeof(int));
+                 tmp_pool = (int *) realloc(sel_pool, sizeof(int));
 
-                 if (tmp_pool == NULL)
+                 if (sel_pool == NULL)
                  {
                     log_to_file(log_file, __FILE__, __LINE__, "selector out of memory");
                     return (-1);
                  }
                  pool_size = 1;
                  // push this individual into the pool
-                 tmp_pool[0] = pool[i];
+                 sel_pool = tmp_pool;
+                 sel_pool[0] = pool[i];
              }
-             else if (get_objective_value(cases[c],pool[i]) == best_val + epsilon[cases[c]])
+             else if (get_objective_value(pool[i],cases[c]) == best_val + epsilon[cases[c]])
              {
                  // add pool[i] to winners
                  ++pool_size;
+                 
+                 tmp_pool = (int *) realloc(sel_pool, pool_size * sizeof(int));
+
+                 if (sel_pool == NULL)
+                 {
+                    log_to_file(log_file, __FILE__, __LINE__, "selector out of memory");
+                    return (-1);
+                 }
+                 // push this individual into the pool
+                 sel_pool = tmp_pool;
+                 sel_pool[pool_size-1] = pool[i];
              }
          }
          ++c;   // increment case            
          pass = (pool_size > 1 && c < dimension); // keep going if needed
          
-         pool = tmp_pool;
+         pool = sel_pool;
      }
-
+     int pick = irand(pool_size);
+     int selection = pool[pick];
+     free(sel_pool);
+     free(tmp_pool);
+     free(pool);
+     return selection;
 
      /// FEMO ///////////
      int *ids_to_choose;
