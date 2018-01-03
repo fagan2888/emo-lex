@@ -51,7 +51,7 @@ struct individual_t
 {
      /**********| added for LEX |**************/
      double *objective_value;
-     int counter;
+     //int counter;
      /**********| addition for LEX end |*******/
 };
 
@@ -208,11 +208,13 @@ int select_ind(int size, int *new_identity, int *sel_identities,
 //
 ///* Determines if two individuals are equal in all objective values.*/
 //int is_equal(int ind_a, int ind_b, int dim);
-
+// return random integer
 int irand(int range);
+// shuffle int array
+void shuffle(int* array, size_t n);
 
-///* choose individual with lowest counter uniformly */
-//int femo_choose();
+///* choose individual via lexicase selection */
+int lex_choose(int *case_order, double *epsilon);
 
 int get_counter(int id);
 

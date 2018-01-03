@@ -411,99 +411,37 @@ int read_local_parameters()
 int select_ind(int size, int *new_identity, int *sel_identities,
                int dimension)
 {
-     int i, pos;
-     int dominated = 0;
-     int equal = 0;
+     /* @params size: number of offspring produced by variation
+      * @params new_identity: population indices to choose from
+      * @returns sel_identities: indices of selected individuals
+      * @params dimension: number of objectives
+      */
+
+     int i, pos; 
      int current_identity;
      int result;
-
+     // objective indices to consider each selection event
      assert(dimension >= 0);
-
-     /* delete all by new_identity dominated individuals */
-     for(i = 0; i < size; i++)
-     {
-          /* only if new_identity[i] not removed yet */
-          if(get_individual(new_identity[i]) != NULL)
-          {
-               /* deleting all individuals which are
-                  dominated by new_identity[i]*/
-               current_identity = get_first();
-               while(current_identity != -1)
-               {
-                    /* skip, if trying to compare to self */
-                    if(current_identity == new_identity[i])
-                         current_identity = get_next(current_identity);
-                    if(current_identity == -1)
-                         break;
-                    /* domination testing */
-                    if(dominates(new_identity[i], current_identity,
-                                 dimension))
-                    {
-                         result = remove_individual(current_identity);
-                         if(result != 0)
-                         {
-                              log_to_file(log_file, __FILE__, __LINE__, 
-                                          "removing individual failed");
-                              return (1);
-                         }
-                    } 
-                    current_identity = get_next(current_identity);
-               }
-          }
-     }
-
-     /* check if new are dominated or equal in all objective values */ 
-     for(i = size-1; i >= 0 ; i--)
-     {
-          equal = 0;
-          dominated = 0;
-
-          /* only if new_identity[i] not removed yet */
-          if (get_individual(new_identity[i]) != NULL)
-          {
-               current_identity = get_first();
-               while (current_identity != -1 && !dominated && !equal)
-               {
-                    /* skip, if trying to compare to self */
-                    if(current_identity == new_identity[i])
-                         current_identity = get_next(current_identity);
-                    if(current_identity == -1)
-                         break;	   
-	   
-                    if (dominates(current_identity, new_identity[i],
-                                  dimension))
-                         dominated = 1;
-                    if (is_equal(current_identity, new_identity[i],
-                                 dimension))
-                         equal = 1;
-	   
-                    current_identity = get_next(current_identity);
-               }
-
-               if (dominated || equal) /* remove new from global population */
-               {
-                    result=remove_individual(new_identity[i]);
-                    if (result != 0)
-                    {
-                
-                         log_to_file(log_file, __FILE__, __LINE__,
-                                     "removing individual failed");
-                         return (1);
-                    }
-           
-               }
-          }
-     }
-       
-     /* uniformly choose mu individual as described in lex */
+     int *cases = (int *) malloc(dimension * sizeof(int));    
+     // if continuous objectives, calculate epsilon
+     epsilon = (double *) malloc(dimension * sizeof(double));
+     if (eplex)
+         calculate_epsilon(new_identity, epsilon);
+     else
+         for (int i =0; i<dimension; ++i)
+             epsilon[i] = 0;
+     
+     /* choose mu individuals by lexicase selection */
      for(i = 0; i < mu; i++)
      {
-          pos = lex_choose();
+          // shuffle objectives
+          shuffle(cases);
+          pos = lex_choose(cases);
           if (pos == -1) /* Choosing failed. */
                return (1);
-          increase_counter(pos);
           sel_identities[i] = pos;
      }
+     free(cases);
      return (0);
 }
 
@@ -519,8 +457,48 @@ int irand(int range)
 /* Chooses one individual uniformly among those with the lowest counter.
    Returns ID of chosen individual.
    Returns -1 of choosing failed for any reason. */
-int lex_choose() 
+int lex_choose(int *cases, double *epsilon, int dimension) 
 {
+     int pool_size = get_size();
+     int *pool = (int *) malloc(pool_size() * sizeof(int));
+     bool pass = true;
+     int c = 0; 
+
+     while (pass) 
+     {
+         for (int i = 0; i < pool_size; ++i)
+         {
+             double best_val = 0;
+
+             if (i==0 || get_objective_value(cases[c],pool[i]) < best_val + epsilon[cases[c]])
+             {
+                 best_val = get_objective_value(cases[c],pool[i]);  // reset best val 
+                 // restart the winner pool
+                 int *tmp_pool = realloc(pool, sizeof(int));
+
+                 if (tmp_pool == NULL)
+                 {
+                    log_to_file(log_file, __FILE__, __LINE__, "selector out of memory");
+                    return (-1);
+                 }
+                 pool_size = 1;
+                 // push this individual into the pool
+                 tmp_pool[0] = pool[i];
+             }
+             else if (get_objective_value(cases[c],pool[i]) == best_val + epsilon[cases[c]])
+             {
+                 // add pool[i] to winners
+                 ++pool_size;
+             }
+         }
+         ++c;   // increment case            
+         pass = (pool_size > 1 && c < dimension); // keep going if needed
+         
+         pool = tmp_pool;
+     }
+
+
+     /// FEMO ///////////
      int *ids_to_choose;
      int size, min, current_id, pick_id, return_id;
      
@@ -565,38 +543,6 @@ int lex_choose()
 }
 
 
-int get_counter(int id)
-{
-     individual* temp;
-     temp = get_individual(id);
-     if(temp == NULL)
-          return(1);
-     return(temp->counter);
-}
-
-
-int increase_counter(int id)
-{
-     individual* temp;
-     temp = get_individual(id);
-     if(temp == NULL)
-          return(1);
-     temp->counter++;
-     return(0);
-}
-
-
-int decrease_counter(int id)
-{
-     individual *temp;
-     temp = get_individual(id);
-     if(temp == NULL)
-          return(1);
-     temp->counter--;
-     return(0);
-}
-
-
 double get_objective_value(int id, int index)
 {
      individual *temp;
@@ -605,5 +551,19 @@ double get_objective_value(int id, int index)
           return(-1);
      return(temp->objective_value[index]);  
 }
-
+// shuffle contents of int array.
+void shuffle(int *array, size_t n)
+{
+    if (n > 1) 
+    {
+        size_t i;
+        for (i = 0; i < n - 1; i++) 
+        {
+          size_t j = i + rand() / (RAND_MAX / (n - i) + 1);
+          int t = array[j];
+          array[j] = array[i];
+          array[i] = t;
+        }
+    }
+}
 /**********| addition for LEX end |*******/
