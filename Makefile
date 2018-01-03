@@ -10,7 +10,7 @@ CFLAGS = -g -Wall -pedantic
 SEL_OBJECTS = selector_user.o selector.o selector_internal.o
 
 selector : $(SEL_OBJECTS)
-	$(CC) $(CFLAGS) -lm $(SEL_OBJECTS) -o selector
+	$(CC) $(CFLAGS) -lm $(SEL_OBJECTS) -o selector -lm
 
 selector_internal.o : selector_internal.c selector_internal.h selector.h selector_user.h
 	$(CC) $(CFLAGS) -c selector_internal.c 

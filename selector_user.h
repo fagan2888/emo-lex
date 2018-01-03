@@ -212,9 +212,13 @@ int select_ind(int size, int *new_identity, int *sel_identities,
 int irand(int range);
 // shuffle int array
 void shuffle(int* array, size_t n);
+int compare (const void * a, const void * b);
+double median(double *v, int size); 
+double mad(double * x, int size);
+void calculate_epsilon(int *ids, int size, int dimension, double *epsilon);
 
 ///* choose individual via lexicase selection */
-int lex_choose(int *case_order, double *epsilon);
+int lex_choose(int *case_order, double *epsilon, int dimension);
 
 int get_counter(int id);
 

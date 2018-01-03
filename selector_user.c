@@ -28,6 +28,7 @@
 #include <assert.h>
 #include <math.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "selector.h"
 #include "selector_user.h"
@@ -41,7 +42,7 @@ char *log_file = "lex_error.log"; /**** Changed for LEX. */
 
 char paramfile[FILE_NAME_LENGTH]; /* file with local parameters */
 
-
+bool eplex = false;     // whether to use epsilon lexicase (for continuous problems)
 /*-------------------------| individual |-------------------------------*/
 int set_objective_value(individual *ind, int index, double obj_value)
 /* Sets the objective_value of an individual.
@@ -94,8 +95,7 @@ individual *create_individual()
           return(NULL);
      }
 
-     return_ind->objective_value = obj_value;
-     return_ind->counter = 0;
+     return_ind->objective_value = obj_value;     
 
      /**********| addition for LEX end |*******/
 
@@ -385,8 +385,8 @@ int read_local_parameters()
 
      int result;
      char str[CFG_NAME_LENGTH];
-     int seed;
-
+     int seed, tmpep;
+     
      /* reading parameter file with parameters for selection */
      fp = fopen(paramfile, "r"); 
      assert(fp != NULL);
@@ -398,6 +398,14 @@ int read_local_parameters()
      assert(result != EOF); /* no EOF, 'seed' correctly read */
      
      srand(seed); /* seeding random number generator */
+
+     fscanf(fp, "%s", str);
+     assert(strcmp(str, "epsilon") == 0);
+     result = fscanf(fp, "%i", &tmpep); /* fscanf() returns EOF if
+                                          reading fails. */
+     assert(result != EOF); /* no EOF, 'seed' correctly read */
+     
+     eplex = tmpep; 
 
      fclose(fp);
   
@@ -416,27 +424,24 @@ int select_ind(int size, int *new_identity, int *sel_identities,
       * @returns sel_identities: indices of selected individuals
       * @params dimension: number of objectives
       */
-
-     int i, pos; 
-     int current_identity;
-     int result;
+     int pos; 
      // objective indices to consider each selection event
      assert(dimension >= 0);
      int *cases = (int *) malloc(dimension * sizeof(int));    
      // if continuous objectives, calculate epsilon
-     epsilon = (double *) malloc(dimension * sizeof(double));
+     double * epsilon = (double *) malloc(dimension * sizeof(double));
      if (eplex)
-         calculate_epsilon(new_identity, epsilon);
+         calculate_epsilon(new_identity, size, dimension, epsilon);
      else
          for (int i =0; i<dimension; ++i)
              epsilon[i] = 0;
      
      /* choose mu individuals by lexicase selection */
-     for(i = 0; i < mu; i++)
+     for(int i = 0; i < mu; i++)
      {
           // shuffle objectives
-          shuffle(cases);
-          pos = lex_choose(cases);
+          shuffle(cases, dimension);
+          pos = lex_choose(cases,epsilon,dimension);
           if (pos == -1) /* Choosing failed. */
                return (1);
           sel_identities[i] = pos;
@@ -444,7 +449,65 @@ int select_ind(int size, int *new_identity, int *sel_identities,
      free(cases);
      return (0);
 }
+void calculate_epsilon(int *ids, int size, int dimension, double *epsilon)
+{
+    // calculate median absolute deviation (MAD) of each objective across the population
+    for (int i  = 0; i < dimension; ++i)
+    {
+        double * objs = (double *) malloc(dimension * sizeof(double));
+        for (int j = 0; j<size; ++j)
+            objs[j] = get_objective_value(j,i);
+        epsilon[i] = mad(objs,dimension);
+    }
 
+}
+int compare (const void * a, const void * b)
+{
+  return ( *(int*)a - *(int*)b );
+}
+/// calculate median
+double median(double *v, int size) 
+{
+
+    // instantiate a vector
+    double * x = (double *) malloc(size * sizeof(double));
+    if (x == NULL)
+    {
+        log_to_file(log_file, __FILE__, __LINE__, "median out of memory");
+        return (-1);
+    }
+	// copy v to x 
+    memcpy(x, v, sizeof(double)*size);
+ 	qsort (x, size, sizeof(double), compare);   
+    
+    // if evenly sized, return average of middle two elements
+    if (size % 2 == 0) 
+        return (x[size/2] + x[size/2-1]) / 2;
+    // otherwise return middle element
+    else
+        return x[size/2];
+}
+
+/// median absolute deviation
+double mad(double * x, int size) 
+{
+    // returns median absolute deviation (MAD)
+    // get median of x
+    double x_median = median(x,size);
+    //calculate absolute deviation from median
+    // instantiate a vector
+    double * dev = (double *) malloc(size * sizeof(double));
+    if (dev == NULL)
+    {
+        log_to_file(log_file, __FILE__, __LINE__, "median out of memory");
+        return (-1);
+    }
+    
+    for (int i =0; i < size; ++i)
+        dev[i] = abs(x[i] - x_median);
+    // return median of the absolute deviation
+    return median(dev,size);
+}
 /* Generate a random integer. */
 int irand(int range)
 {
@@ -460,8 +523,8 @@ int irand(int range)
 int lex_choose(int *cases, double *epsilon, int dimension) 
 {
      int pool_size = get_size();
-     int *pool = (int *) malloc(pool_size() * sizeof(int));
-     for (int i =0;i<pool_size(); ++i)
+     int *pool = (int *) malloc(pool_size * sizeof(int));
+     for (int i =0;i<pool_size; ++i)
          pool[i] = i;
 
      bool pass = true;
@@ -512,56 +575,57 @@ int lex_choose(int *cases, double *epsilon, int dimension)
          pass = (pool_size > 1 && c < dimension); // keep going if needed
          
          pool = sel_pool;
+         free(sel_pool);
+         free(tmp_pool);
      }
      int pick = irand(pool_size);
      int selection = pool[pick];
-     free(sel_pool);
-     free(tmp_pool);
+     
      free(pool);
      return selection;
 
      /// FEMO ///////////
-     int *ids_to_choose;
-     int size, min, current_id, pick_id, return_id;
-     
-     ids_to_choose = (int *) malloc(get_size() * sizeof(int));
-     if (ids_to_choose == NULL)
-     {
-          log_to_file(log_file, __FILE__, __LINE__, "selector out of memory");
-          return (-1);
-     }  
-     
-     current_id = get_first();
-     if(current_id == -1)
-          return(-1);
-     
-     min = get_counter(current_id);
-     size = 1;
-     ids_to_choose[0] = current_id;
-     current_id = get_next(current_id);
-     while(current_id != -1)
-     {
-          if(min > get_counter(current_id))
-          {
-               size = 1;
-               ids_to_choose[0] = current_id;
-               min = get_counter(current_id);
-          }
-          else if(min == get_counter(current_id))
-          {
-               size++;
-               ids_to_choose[size - 1] = current_id;
-          }
-          current_id = get_next(current_id);
-     }
-     
-     pick_id = irand(size);
-     
-     return_id = ids_to_choose[pick_id];
+    // int *ids_to_choose;
+    // int size, min, current_id, pick_id, return_id;
+    // 
+    // ids_to_choose = (int *) malloc(get_size() * sizeof(int));
+    // if (ids_to_choose == NULL)
+    // {
+    //      log_to_file(log_file, __FILE__, __LINE__, "selector out of memory");
+    //      return (-1);
+    // }  
+    // 
+    // current_id = get_first();
+    // if(current_id == -1)
+    //      return(-1);
+    // 
+    // min = get_counter(current_id);
+    // size = 1;
+    // ids_to_choose[0] = current_id;
+    // current_id = get_next(current_id);
+    // while(current_id != -1)
+    // {
+    //      if(min > get_counter(current_id))
+    //      {
+    //           size = 1;
+    //           ids_to_choose[0] = current_id;
+    //           min = get_counter(current_id);
+    //      }
+    //      else if(min == get_counter(current_id))
+    //      {
+    //           size++;
+    //           ids_to_choose[size - 1] = current_id;
+    //      }
+    //      current_id = get_next(current_id);
+    // }
+    // 
+    // pick_id = irand(size);
+    // 
+    // return_id = ids_to_choose[pick_id];
 
-     free(ids_to_choose);
-     
-     return (return_id);
+    // free(ids_to_choose);
+    // 
+    // return (return_id);
 }
 
 
