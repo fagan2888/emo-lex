@@ -405,7 +405,7 @@ int read_local_parameters()
      assert(result != EOF); /* no EOF, 'seed' correctly read */
      
      eplex = tmpep; 
-     printf("eplex: %i\n",eplex);
+     //printf("eplex: %i\n",eplex);
      fclose(fp);
   
      /* do some other initialization steps... */
@@ -426,7 +426,7 @@ int select_ind(int size, int *new_identity, int *sel_identities,
      
      printf("select_ind...\n"); 
      assert(dimension >= 0);
-     
+     printf("calculating epsilon\n"); 
      // if continuous objectives, calculate epsilon
      double * epsilon = (double *) malloc(dimension * sizeof(double));
      if (eplex)
@@ -434,7 +434,7 @@ int select_ind(int size, int *new_identity, int *sel_identities,
      else
          for (int i =0; i<dimension; ++i)
              epsilon[i] = 0;
-     
+     printf("starting selection...\n");
 
      /* choose mu individuals by lexicase selection */
      //#pragma omp parallel for 
@@ -455,15 +455,17 @@ int select_ind(int size, int *new_identity, int *sel_identities,
      }
      return (0);
 }
-void calculate_epsilon(int *ids, int size, int dimension, double *epsilon)
+void calculate_epsilon(int *ids, int popsize, int dimension, double *epsilon)
 {
     // calculate median absolute deviation (MAD) of each objective across the population
     for (int i  = 0; i < dimension; ++i)
     {
-        double * objs = (double *) malloc(dimension * sizeof(double));
-        for (int j = 0; j<size; ++j)
+        printf("calc epsilon for dimension %i...\n",i);
+        double * objs = (double *) malloc(popsize * sizeof(double));
+        for (int j = 0; j<popsize; ++j)
             objs[j] = get_objective_value(j,i);
-        epsilon[i] = mad(objs,dimension);
+        printf("mad..\n");
+        epsilon[i] = mad(objs,popsize);
         free(objs);
     }
 
@@ -477,14 +479,19 @@ double median(double *v, int size)
 {
 
     // instantiate a vector
+    printf("\tinstantiate a vector\n");
+    printf("\tsize:%i\n",size);
     double * x = (double *) malloc(size * sizeof(double));
     if (x == NULL)
     {
+        printf("median out of memory\n");
         log_to_file(log_file, __FILE__, __LINE__, "median out of memory");
         return (-1);
     }
 	// copy v to x 
+    printf("\tcopy v to x\n");
     memcpy(x, v, sizeof(double)*size);
+    printf("\tqsort\n");
  	qsort (x, size, sizeof(double), compare);   
     double answer; 
     // if evenly sized, return average of middle two elements
@@ -502,6 +509,7 @@ double mad(double * x, int size)
 {
     // returns median absolute deviation (MAD)
     // get median of x
+    printf("get median of x\n");
     double x_median = median(x,size);
     //calculate absolute deviation from median
     // instantiate a vector
@@ -511,7 +519,7 @@ double mad(double * x, int size)
         log_to_file(log_file, __FILE__, __LINE__, "median out of memory");
         return (-1);
     }
-    
+    printf("calculate deviation\n");    
     for (int i =0; i < size; ++i)
         dev[i] = abs(x[i] - x_median);
     // return median of the absolute deviation
@@ -533,6 +541,7 @@ int irand(int range)
    Returns -1 of choosing failed for any reason. */
 int lex_choose(int *cases, double *epsilon, int dimension) 
 {
+     printf("lex_choose\n");
      int pool_size = get_size();
      int *pool = (int *) malloc(pool_size * sizeof(int));
      for (int i =0;i<pool_size; ++i)
@@ -545,7 +554,7 @@ int lex_choose(int *cases, double *epsilon, int dimension)
      { 
          double best_val = 0;
          int *sel_pool = NULL;
-         int *tmp_pool = NULL;
+         //int *tmp_pool = NULL;
 
          for (int i = 0; i < pool_size; ++i)
          {
@@ -553,41 +562,49 @@ int lex_choose(int *cases, double *epsilon, int dimension)
              {
                  best_val = get_objective_value(pool[i],cases[c]);  // reset best val 
                  // restart the winner pool
-                 tmp_pool = (int *) realloc(sel_pool, sizeof(int));
+                 printf("restarting the winner pool\n");
+                 int * tmp_pool = (int *) realloc(sel_pool, sizeof(int));
 
-                 if (sel_pool == NULL)
+                 if (tmp_pool == NULL)
                  {
                     log_to_file(log_file, __FILE__, __LINE__, "selector out of memory");
                     return (-1);
                  }
                  pool_size = 1;
                  // push this individual into the pool
+                 printf("pushing this individual into the pool\n");
+                 printf("size of tmp_pool:%i\n",sizeof(tmp_pool)/sizeof(tmp_pool[0]));
+                 printf("sel_pool=tmp_pool\n");         
                  sel_pool = tmp_pool;
+                 printf("sel+_pool[0] = pool[i]");
                  sel_pool[0] = pool[i];
              }
              else if (get_objective_value(pool[i],cases[c]) == best_val + epsilon[cases[c]])
              {
                  // add pool[i] to winners
                  ++pool_size;
-                 
-                 tmp_pool = (int *) realloc(sel_pool, pool_size * sizeof(int));
+                 printf("adding pool[i] to winners\n");
+                 int * tmp_pool = (int *) realloc(sel_pool, pool_size * sizeof(int));
 
-                 if (sel_pool == NULL)
+                 if (tmp_pool == NULL)
                  {
                     log_to_file(log_file, __FILE__, __LINE__, "selector out of memory");
                     return (-1);
                  }
                  // push this individual into the pool
+                 printf("pushing this individual into the pool\n");
+                 printf("size of tmp_pool:%i",sizeof(tmp_pool)/sizeof(tmp_pool[0]));
                  sel_pool = tmp_pool;
                  sel_pool[pool_size-1] = pool[i];
              }
          }
+         printf("size of sel_pool:%i",sizeof(sel_pool)/sizeof(sel_pool[0]));
          ++c;   // increment case            
          pass = (pool_size > 1 && c < dimension); // keep going if needed
          
          pool = sel_pool;
          free(sel_pool);
-         free(tmp_pool);
+         //free(tmp_pool);
      }
      int pick = irand(pool_size);
      int selection = pool[pick];
