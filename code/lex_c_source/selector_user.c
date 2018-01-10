@@ -256,7 +256,9 @@ int state3()
      //result = select_ind(lambda, offspring_identities,
      //                    parent_identities, dimension);
      // for now, just set parent_identities to offspring, like normal lexicase
-     parent_identities = offspring_identities;
+     assert(mu == lambda);
+     //parent_identities = offspring_identities;
+     memcpy(parent_identities,offspring_identities,lambda*sizeof(int));
      if (result != 0)
      {
           log_to_file(log_file, __FILE__, __LINE__, "selection failed");
@@ -424,18 +426,24 @@ int select_ind(int size, int *new_identity, int *sel_identities,
       * @params dimension: number of objectives
       */
      
-     printf("select_ind...\n"); 
+     printf("select_ind...\n");
+     printf("size:%i\n",size);
+     printf("new_identity size:%i\n",sizeof(new_identity)/sizeof(new_identity[0]));
      assert(dimension >= 0);
-     printf("calculating epsilon\n"); 
-     // if continuous objectives, calculate epsilon
+          // if continuous objectives, calculate epsilon
      double * epsilon = (double *) malloc(dimension * sizeof(double));
-     if (eplex)
+     if (eplex){
+         printf("calculating epsilon\n"); 
          calculate_epsilon(new_identity, size, dimension, epsilon);
-     else
+     }
+     else{
+         printf("setting epsilon to zero\n"); 
          for (int i =0; i<dimension; ++i)
              epsilon[i] = 0;
+     }
+     
      printf("starting selection...\n");
-
+     
      /* choose mu individuals by lexicase selection */
      //#pragma omp parallel for 
      for(int i = 0; i < mu; i++)
@@ -542,69 +550,112 @@ int irand(int range)
 int lex_choose(int *cases, double *epsilon, int dimension) 
 {
      printf("lex_choose\n");
-     int pool_size = get_size();
-     int *pool = (int *) malloc(pool_size * sizeof(int));
-     for (int i =0;i<pool_size; ++i)
+     int starting_pool_size = get_size();
+     
+     printf("%i: population semantics:\n---\n",__LINE__);
+     for (int i = 0; i < starting_pool_size; ++i)
+     {
+         printf("ind %i:\t",i);
+         for (int j = 0; j < dimension; ++j)
+            printf("%i,",get_objective_value(i,j));    
+         printf("\n");
+     }
+     printf("ep:\t");
+     for (int i = 0; i<dimension; ++i)
+         printf("%d,",epsilon[i]);
+     printf("\n---\n");
+     
+     int *pool = (int *) malloc(starting_pool_size * sizeof(int));
+     for (int i =0;i<starting_pool_size; ++i)
          pool[i] = i;
-
+     printf("%i: initial pool: \t",__LINE__);
+     for (int i = 0; i<starting_pool_size; ++i)
+         printf("%i,",pool[i]);
+     printf("\n");
+     printf("%i: cases: \t",__LINE__);
+     for (int i = 0; i<dimension; ++i)
+         printf("%i,",cases[i]);
+     printf("\n");  
+     
      bool pass = true;
      int c = 0; 
-
+     int pool_size = 0;
      while (pass) 
      { 
          double best_val = 0;
          int *sel_pool = NULL;
          //int *tmp_pool = NULL;
+         printf("cases[c=%i]:%i\n",c,cases[c]);
 
-         for (int i = 0; i < pool_size; ++i)
+         printf("size of sel_pool:%i\n",sizeof(sel_pool)/sizeof(sel_pool[0]));
+         for (int i = 0; i < starting_pool_size; ++i)
          {
              if (i==0 || get_objective_value(pool[i],cases[c]) < best_val + epsilon[cases[c]])
              {
                  best_val = get_objective_value(pool[i],cases[c]);  // reset best val 
+                 printf("\t%i: new best_val (%i,%i):%d\n",pool[i],cases[c],best_val);
                  // restart the winner pool
-                 printf("restarting the winner pool\n");
-                 int * tmp_pool = (int *) realloc(sel_pool, sizeof(int));
-
-                 if (tmp_pool == NULL)
+                 printf("\t%i: free sel_pool\n",__LINE__);
+                 free(sel_pool);
+                 //sel_pool = NULL;
+                 //printf("malloc sel_pool\n");
+                 sel_pool = (int *) malloc(sizeof(int));
+                 if (sel_pool == NULL)
                  {
+                    printf("out of memory line %i\n",__LINE__);
                     log_to_file(log_file, __FILE__, __LINE__, "selector out of memory");
                     return (-1);
                  }
                  pool_size = 1;
                  // push this individual into the pool
-                 printf("pushing this individual into the pool\n");
-                 printf("size of tmp_pool:%i\n",sizeof(tmp_pool)/sizeof(tmp_pool[0]));
-                 printf("sel_pool=tmp_pool\n");         
-                 sel_pool = tmp_pool;
-                 printf("sel+_pool[0] = pool[i]");
-                 sel_pool[0] = pool[i];
+                 //printf("%i: pushing this individual into the pool\n",__LINE__);
+                 //printf("size of tmp_pool:%i\n",sizeof(tmp_pool)/sizeof(tmp_pool[0]));
+                 //printf("%i: size of sel_pool:%i\n",__LINE__,sizeof(sel_pool)/sizeof(sel_pool[0]));
+                 //printf("sel_pool=tmp_pool\n");         
+                 //sel_pool = tmp_pool;
+                 printf("\t%i: sel_pool[0] = pool[%i] = %i\n",__LINE__,i,pool[i]);
+                 sel_pool[0] = pool[0];
              }
              else if (get_objective_value(pool[i],cases[c]) == best_val + epsilon[cases[c]])
              {
                  // add pool[i] to winners
                  ++pool_size;
-                 printf("adding pool[i] to winners\n");
-                 int * tmp_pool = (int *) realloc(sel_pool, pool_size * sizeof(int));
+                 printf("\tadding pool[%i] to winners (best_val + ep=%d)\n",i,best_val+epsilon[cases[c]]);
+                 int * tmp_pool = (int *) malloc(pool_size * sizeof(int));
+                 
 
                  if (tmp_pool == NULL)
                  {
                     log_to_file(log_file, __FILE__, __LINE__, "selector out of memory");
                     return (-1);
                  }
+                 for (int j = 0; j<pool_size-1; ++j)
+                    tmp_pool[j] = sel_pool[j];
+                 tmp_pool[pool_size-1] = pool[i];
                  // push this individual into the pool
-                 printf("pushing this individual into the pool\n");
-                 printf("size of tmp_pool:%i",sizeof(tmp_pool)/sizeof(tmp_pool[0]));
+                 //printf("\tsize of tmp_pool:%i\n",sizeof(tmp_pool)/sizeof(tmp_pool[0]));
+                 free(sel_pool);
                  sel_pool = tmp_pool;
-                 sel_pool[pool_size-1] = pool[i];
+                 printf("\t%i: sel_pool[%i-1] = pool[%i] = %i\n",__LINE__,pool_size,i,pool[i]);
+                 //sel_pool[pool_size-1] = pool[i];
              }
          }
-         printf("size of sel_pool:%i",sizeof(sel_pool)/sizeof(sel_pool[0]));
+         printf("%i: size of sel_pool:%i\n",__LINE__,sizeof(sel_pool)/sizeof(sel_pool[0]));
+         printf("%i: pool_size: %i\n",__LINE__,pool_size);
          ++c;   // increment case            
          pass = (pool_size > 1 && c < dimension); // keep going if needed
-         
-         pool = sel_pool;
-         free(sel_pool);
-         //free(tmp_pool);
+         printf("%i: resetting pool for next case\n",__LINE__); 
+         printf("%i: sel_pool:\t",__LINE__);
+         for (int j = 0; j < pool_size; ++j)
+             printf("%i,",sel_pool[j]);
+         printf("\n");
+         free(pool);
+         pool = (int *) malloc ( pool_size * sizeof(int));
+         memcpy(pool,sel_pool, pool_size * sizeof(int)); 
+         printf("%i: new pool:\t",__LINE__);
+         for (int j = 0; j < pool_size; ++j)
+             printf("%i,",pool[j]);
+         printf("\n");
      }
      int pick = irand(pool_size);
      int selection = pool[pick];

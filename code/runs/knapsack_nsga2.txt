@@ -14,14 +14,14 @@ end monParameter
 
 start varCommonParameter
 alpha 200
-mu 100
-lambda 100
-dim 2
+mu 5
+lambda 5
+dim 10
 
 end varCommonParameter
 
 start varParameter
-seed 1039845533
+seed 1562469901
 length 500
 maxgen 1000
 outputfile knapsack_output.txt
@@ -35,9 +35,9 @@ end varParameter
 
 start selCommonParameter
 alpha 200
-mu 100
-lambda 100
-dim 2
+mu 5
+lambda 5
+dim 10
 
 end selCommonParameter
 

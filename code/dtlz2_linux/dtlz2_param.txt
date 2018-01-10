@@ -1,5 +1,5 @@
 problem DTLZ2
-seed 1562469901
+seed 1039845533
 number_decision_variables 100
 maxgen 1000
 outputfile dtlz_output.txt

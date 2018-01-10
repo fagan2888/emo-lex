@@ -6,8 +6,9 @@
 
 # to be edited by the user
 #selectors="ibea nsga2 spea2 lex"
-selectors="lex nsga2"
-variators="dtlz2 knapsack zdt6"
+selectors="lex"
+#variators="dtlz2 knapsack zdt6"
+variators="knapsack"
 os="linux";
 
 generation=2
@@ -26,40 +27,42 @@ if [[ $1 != "compare" ]] ; then
 	done ;
     done ;
 fi
-    
-for var in $variators ; do
-    . ./compute.ksh bounds dummy $var $generation
-done ;
-    
-for sel in $selectors ; do
+
+if [[ $1 != "train" ]]; then
+        
     for var in $variators ; do
-	. ./compute.ksh indicators $sel $var $generation
+        . ./compute.ksh bounds dummy $var $generation
     done ;
-done ;
-    
-for var in $variators ; do
-    . ./compute.ksh tests dummy $var $generation
-done ;
-
-for sel in $selectors ; do
+        
+    for sel in $selectors ; do
+        for var in $variators ; do
+        . ./compute.ksh indicators $sel $var $generation
+        done ;
+    done ;
+        
     for var in $variators ; do
-	. ./compute.ksh eafs $sel $var $generation
+        . ./compute.ksh tests dummy $var $generation
     done ;
-done ;
 
-for sela in $selectors ; do
-    for selb in $selectors ; do
+    for sel in $selectors ; do
         for var in $variators ; do
-	    . ./compute.ksh eaftests $sela $selb $var $generation
-	done ;
+        . ./compute.ksh eafs $sel $var $generation
+        done ;
     done ;
-done ;
 
-for sela in $selectors ; do
-    for selb in $selectors ; do
-        for var in $variators ; do
-	    . ./compute.ksh ranktests $sela $selb $var $generation
-	done ;
+    for sela in $selectors ; do
+        for selb in $selectors ; do
+            for var in $variators ; do
+            . ./compute.ksh eaftests $sela $selb $var $generation
+        done ;
+        done ;
     done ;
-done ;
 
+    for sela in $selectors ; do
+        for selb in $selectors ; do
+            for var in $variators ; do
+            . ./compute.ksh ranktests $sela $selb $var $generation
+        done ;
+        done ;
+    done ;
+fi

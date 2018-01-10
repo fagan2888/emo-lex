@@ -14,9 +14,9 @@ end monParameter
 
 start varCommonParameter
 alpha 200
-mu 100
-lambda 100
-dim 2
+mu 5
+lambda 5
+dim 10
 
 end varCommonParameter
 
@@ -38,9 +38,14 @@ end varParameter
 
 start selCommonParameter
 alpha 200
-mu 100
-lambda 100
-dim 2
+mu 5
+lambda 5
+dim 10
 
 end selCommonParameter
 
+start selParameter
+seed 42
+epsilon 1
+
+end selParameter

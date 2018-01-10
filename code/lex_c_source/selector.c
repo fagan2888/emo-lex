@@ -305,7 +305,7 @@ int read_ini(int *id_array)
           exit(EXIT_FAILURE);
      }
      
-     
+     printf("ini_file:%s",ini_file); 
      fp = fopen(ini_file, "r");
      assert(fp != NULL);
 

@@ -1,4 +1,4 @@
-seed 1039845533
+seed 1562469901
 length 500
 maxgen 1000
 outputfile knapsack_output.txt
