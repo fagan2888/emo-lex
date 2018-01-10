@@ -417,24 +417,24 @@ int read_local_parameters()
 
 /* Implements LEX. Takes size individual from variation, updates global
    population and selects mu new individual for variation. */
-int select_ind(int size, int *new_identity, int *sel_identities,
+int select_ind(int size, int *population, int *parents,
                int dimension)
 {
      /* @params size: number of offspring produced by variation
-      * @params new_identity: population indices to choose from
-      * @returns sel_identities: indices of selected individuals
+      * @params population: population indices to choose from
+      * @returns parents: indices of selected individuals
       * @params dimension: number of objectives
       */
      
      printf("select_ind...\n");
      printf("size:%i\n",size);
-     printf("new_identity size:%i\n",sizeof(new_identity)/sizeof(new_identity[0]));
+     printf("population size:%i\n",sizeof(population)/sizeof(population[0]));
      assert(dimension >= 0);
           // if continuous objectives, calculate epsilon
      double * epsilon = (double *) malloc(dimension * sizeof(double));
      if (eplex){
          printf("calculating epsilon\n"); 
-         calculate_epsilon(new_identity, size, dimension, epsilon);
+         calculate_epsilon(population, size, dimension, epsilon);
      }
      else{
          printf("setting epsilon to zero\n"); 
@@ -458,7 +458,7 @@ int select_ind(int size, int *new_identity, int *sel_identities,
          int pos = lex_choose(cases,epsilon,dimension);
         // if (pos == -1) /* Choosing failed. */
         //      return (1);
-         sel_identities[i] = pos;
+         parents[i] = pos;
          free(cases);
      }
      return (0);
