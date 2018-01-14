@@ -28,6 +28,7 @@
 #include <string.h>
 #include <stdbool.h>
 
+#include <algorithm>
 #include "selector.h"
 #include "selector_user.h"
 
@@ -147,6 +148,7 @@ int state1()
            values from the 'paramfile'. */
 
      /**********| added for LEX |**************/
+     printf("read_local_parameters\n");
      result = read_local_parameters();  
      if (result != 0)
      { 
@@ -163,7 +165,7 @@ int state1()
           log_to_file(log_file, __FILE__, __LINE__, "selector out of memory");
           return (1);
      }
-     
+     printf("read_ini\n");
      result = read_ini(result_identities);   /* read ini file */
      if (result == 1)
           return (2); /* reading ini file failed */
@@ -177,7 +179,7 @@ int state1()
      }
      
      /**********| added for LEX |**************/
-
+     printf("select_ind\n");
      result = select_ind(alpha, result_identities,
                          PISA_identities, dimension); /* changedddd */
 
@@ -188,7 +190,7 @@ int state1()
      }
      
      /**********| addition for LEX end |*******/
-
+     printf("write_sel\n");
      result = write_sel(PISA_identities);     /* write sel file */
      if(result != 0)
      {
@@ -198,7 +200,7 @@ int state1()
      
      free(PISA_identities);
      free(result_identities);
-
+     printf("write_arc\n");
      result = write_arc();     /* write arc file
                                   (individuals in global population) */
      if(result != 0)
@@ -239,26 +241,33 @@ int state3()
           log_to_file(log_file, __FILE__, __LINE__, "selector out of memory");
           return (1);
      }
-
+//     // clear global population
+//
+//     int id = get_first();
+//     int idn;
+//     while( get_size() != 0){
+//         printf("removing ind %i",id);
+//         idn = get_next(id);
+//         remove_individual(id);
+//         id = idn;
+//     }
      parent_identities = (int *) malloc(mu * sizeof(int)); 
      if (parent_identities == NULL)
      {
           log_to_file(log_file, __FILE__, __LINE__, "variator out of memory");
           return (1);
      }
-     
+
+     printf("read_var\n");
      result = read_var(offspring_identities);
      if (result == 1) /* if some file reading error occurs, return 2 */
           return (2);
 
      /**********| added for LEX |**************/
 
-     //result = select_ind(lambda, offspring_identities,
-     //                    parent_identities, dimension);
-     // for now, just set parent_identities to offspring, like normal lexicase
-     assert(mu == lambda);
-     //parent_identities = offspring_identities;
-     memcpy(parent_identities,offspring_identities,lambda*sizeof(int));
+     result = select_ind(lambda, offspring_identities,
+                         parent_identities, dimension);
+     
      if (result != 0)
      {
           log_to_file(log_file, __FILE__, __LINE__, "selection failed");
@@ -277,6 +286,8 @@ int state3()
      free(parent_identities);
      free(offspring_identities);
 
+     // clear global population
+     printf("write_arc\n");
      result = write_arc();
      
      if(result != 0)
@@ -394,7 +405,7 @@ int read_local_parameters()
 
      fscanf(fp, "%s", str);
      assert(strcmp(str, "seed") == 0);
-     result = fscanf(fp, "%d", &seed); /* fscanf() returns EOF if
+     result = fscanf(fp, "%e", &seed); /* fscanf() returns EOF if
                                           reading fails. */
      assert(result != EOF); /* no EOF, 'seed' correctly read */
      
@@ -428,9 +439,8 @@ int select_ind(int size, int *population, int *parents,
      
      printf("select_ind...\n");
      printf("size:%i\n",size);
-     printf("population size:%i\n",sizeof(population)/sizeof(population[0]));
      assert(dimension >= 0);
-          // if continuous objectives, calculate epsilon
+     // if continuous objectives, calculate epsilon
      double * epsilon = (double *) malloc(dimension * sizeof(double));
      if (eplex){
          printf("calculating epsilon\n"); 
@@ -442,10 +452,28 @@ int select_ind(int size, int *population, int *parents,
              epsilon[i] = 0;
      }
      
+     printf("%i: population semantics:\n---\n",__LINE__);
+     for (int i = 0; i < get_size(); ++i)
+     {
+         printf("ind %i:\t",i);
+         for (int j = 0; j < dimension; ++j)
+            printf("%e,",get_objective_value(i,j));    
+         printf("\n");
+     }
+     printf("---\nmin:\t");
+     std::vector<int> pop(mu);
+     std::iota(pop.begin(),pop.end(),0);
+     for (int i = 0; i<dimension; ++i)
+         printf("%e,",min_obj(pop,i));
+     
+     printf("\n---\nep:\t");
+     for (int i = 0; i<dimension; ++i)
+         printf("%e,",epsilon[i]);
+     printf("\n---\n");
      printf("starting selection...\n");
      
      /* choose mu individuals by lexicase selection */
-     //#pragma omp parallel for 
+      
      for(int i = 0; i < mu; i++)
      {
          printf("selection %i\n",i);
@@ -455,7 +483,7 @@ int select_ind(int size, int *population, int *parents,
             cases[i] = i;                
          // shuffle objectives
          shuffle(cases, dimension);
-         int pos = lex_choose(cases,epsilon,dimension);
+         int pos = lex_choose(size,cases,epsilon,dimension);
         // if (pos == -1) /* Choosing failed. */
         //      return (1);
          parents[i] = pos;
@@ -468,72 +496,53 @@ void calculate_epsilon(int *ids, int popsize, int dimension, double *epsilon)
     // calculate median absolute deviation (MAD) of each objective across the population
     for (int i  = 0; i < dimension; ++i)
     {
-        printf("calc epsilon for dimension %i...\n",i);
-        double * objs = (double *) malloc(popsize * sizeof(double));
+        //printf("calc epsilon for dimension %i...\n",i);
+        std::vector<double> objs;
         for (int j = 0; j<popsize; ++j)
-            objs[j] = get_objective_value(j,i);
-        printf("mad..\n");
-        epsilon[i] = mad(objs,popsize);
-        free(objs);
+            objs.push_back( get_objective_value(j,i) );
+        printf("epsilon[%i] = %e..\n",i,mad(objs));
+        epsilon[i] = mad(objs);
     }
 
 }
-int compare (const void * a, const void * b)
-{
-  return ( *(int*)a - *(int*)b );
-}
+
 /// calculate median
-double median(double *v, int size) 
+double median(const std::vector<double>& v) 
 {
-
     // instantiate a vector
-    printf("\tinstantiate a vector\n");
-    printf("\tsize:%i\n",size);
-    double * x = (double *) malloc(size * sizeof(double));
-    if (x == NULL)
-    {
-        printf("median out of memory\n");
-        log_to_file(log_file, __FILE__, __LINE__, "median out of memory");
-        return (-1);
-    }
-	// copy v to x 
-    printf("\tcopy v to x\n");
-    memcpy(x, v, sizeof(double)*size);
-    printf("\tqsort\n");
- 	qsort (x, size, sizeof(double), compare);   
-    double answer; 
+    std::vector<double> x(v.size());
+    x.assign(v.data(),v.data()+v.size());
+    // middle element
+    size_t n = x.size()/2;
+    // sort nth element of array
+    std::nth_element(x.begin(),x.begin()+n,x.end());
     // if evenly sized, return average of middle two elements
-    if (size % 2 == 0) 
-        answer= (x[size/2] + x[size/2-1]) / 2;
+    if (x.size() % 2 == 0) {
+        nth_element(x.begin(),x.begin()+n-1,x.end());
+        return (x[n] + x[n-1]) / 2;
+    }
     // otherwise return middle element
     else
-        answer= x[size/2];
-    free(x);
-    return answer;
+        return x[n];
 }
 
 /// median absolute deviation
-double mad(double * x, int size) 
+double mad(const std::vector<double>& x) 
 {
     // returns median absolute deviation (MAD)
     // get median of x
-    printf("get median of x\n");
-    double x_median = median(x,size);
+    double x_median = median(x);
+    printf("x_median: %e\n",x_median);
     //calculate absolute deviation from median
-    // instantiate a vector
-    double * dev = (double *) malloc(size * sizeof(double));
-    if (dev == NULL)
-    {
-        log_to_file(log_file, __FILE__, __LINE__, "median out of memory");
-        return (-1);
-    }
-    printf("calculate deviation\n");    
-    for (int i =0; i < size; ++i)
-        dev[i] = abs(x[i] - x_median);
+    std::vector<double> dev;
+    for (int i =0; i < x.size(); ++i)
+        dev.push_back(fabs(x[i] - x_median));
+    printf("deviations: ");
+    for (int i =0; i<dev.size(); ++i)
+        printf("%e ",dev[i]);
+    printf("\n");
     // return median of the absolute deviation
-    double answer = median(dev,size);
-    free(dev);
-    return answer;
+    return median(dev);
 }
 /* Generate a random integer. */
 int irand(int range)
@@ -543,35 +552,30 @@ int irand(int range)
      return (j);
 }
 
+double min_obj(const std::vector<int>& p, int o)
+{
+    // returns minimum objective value among individuals p for objective o.
+    double mino = get_objective_value(p[0],o);
+    for (unsigned i = 1; i<p.size(); ++i)
+    {
+        if (get_objective_value(p[i],o) < mino)
+            mino = get_objective_value(p[i],o);
+    }
+    return mino;
+}
 
 /* Chooses one individual uniformly among those with the lowest counter.
    Returns ID of chosen individual.
    Returns -1 of choosing failed for any reason. */
-int lex_choose(int *cases, double *epsilon, int dimension) 
-{
-     printf("lex_choose\n");
-     int starting_pool_size = get_size();
-     
-     printf("%i: population semantics:\n---\n",__LINE__);
-     for (int i = 0; i < starting_pool_size; ++i)
-     {
-         printf("ind %i:\t",i);
-         for (int j = 0; j < dimension; ++j)
-            printf("%i,",get_objective_value(i,j));    
-         printf("\n");
-     }
-     printf("ep:\t");
-     for (int i = 0; i<dimension; ++i)
-         printf("%d,",epsilon[i]);
-     printf("\n---\n");
-     
-     int *pool = (int *) malloc(starting_pool_size * sizeof(int));
+int lex_choose(int starting_pool_size, int *cases, double *epsilon, int dimension) 
+{  
+     std::vector<int> pool;
      for (int i =0;i<starting_pool_size; ++i)
-         pool[i] = i;
-     printf("%i: initial pool: \t",__LINE__);
-     for (int i = 0; i<starting_pool_size; ++i)
-         printf("%i,",pool[i]);
-     printf("\n");
+         pool.push_back(i);
+     //printf("%i: initial pool: \t",__LINE__);
+     //for (int i = 0; i<starting_pool_size; ++i)
+     //    printf("%i,",pool[i]);
+     //printf("\n");
      printf("%i: cases: \t",__LINE__);
      for (int i = 0; i<dimension; ++i)
          printf("%i,",cases[i]);
@@ -580,87 +584,42 @@ int lex_choose(int *cases, double *epsilon, int dimension)
      bool pass = true;
      int c = 0; 
      int pool_size = 0;
+     double p = 10000; //precision
      while (pass) 
      { 
-         double best_val = 0;
-         int *sel_pool = NULL;
-         //int *tmp_pool = NULL;
-         printf("cases[c=%i]:%i\n",c,cases[c]);
+         
+         std::vector<int> sel_pool;
 
-         printf("size of sel_pool:%i\n",sizeof(sel_pool)/sizeof(sel_pool[0]));
-         for (int i = 0; i < starting_pool_size; ++i)
+         printf("pool: ");
+         for (unsigned i =0; i<pool.size();++i) 
+             printf("%i(%e) ",pool[i],get_objective_value(pool[i],cases[c]));
+         printf("\n");
+         double threshold = min_obj(pool,cases[c]) + epsilon[cases[c]];
+         printf("case %i threshold: %e + %e = %e\n",cases[c],min_obj(pool,cases[c]),epsilon[cases[c]],threshold);
+         printf("sel_pool: ");
+         for (int i = 0; i < pool.size(); ++i)
          {
-             if (i==0 || get_objective_value(pool[i],cases[c]) < best_val + epsilon[cases[c]])
-             {
-                 best_val = get_objective_value(pool[i],cases[c]);  // reset best val 
-                 printf("\t%i: new best_val (%i,%i):%d\n",pool[i],cases[c],best_val);
-                 // restart the winner pool
-                 printf("\t%i: free sel_pool\n",__LINE__);
-                 free(sel_pool);
-                 //sel_pool = NULL;
-                 //printf("malloc sel_pool\n");
-                 sel_pool = (int *) malloc(sizeof(int));
-                 if (sel_pool == NULL)
-                 {
-                    printf("out of memory line %i\n",__LINE__);
-                    log_to_file(log_file, __FILE__, __LINE__, "selector out of memory");
-                    return (-1);
-                 }
-                 pool_size = 1;
-                 // push this individual into the pool
-                 //printf("%i: pushing this individual into the pool\n",__LINE__);
-                 //printf("size of tmp_pool:%i\n",sizeof(tmp_pool)/sizeof(tmp_pool[0]));
-                 //printf("%i: size of sel_pool:%i\n",__LINE__,sizeof(sel_pool)/sizeof(sel_pool[0]));
-                 //printf("sel_pool=tmp_pool\n");         
-                 //sel_pool = tmp_pool;
-                 printf("\t%i: sel_pool[0] = pool[%i] = %i\n",__LINE__,i,pool[i]);
-                 sel_pool[0] = pool[0];
-             }
-             else if (get_objective_value(pool[i],cases[c]) == best_val + epsilon[cases[c]])
+             double f = get_objective_value(pool[i],cases[c]);
+                          
+             if (f <= threshold)
              {
                  // add pool[i] to winners
-                 ++pool_size;
-                 printf("\tadding pool[%i] to winners (best_val + ep=%d)\n",i,best_val+epsilon[cases[c]]);
-                 int * tmp_pool = (int *) malloc(pool_size * sizeof(int));
-                 
-
-                 if (tmp_pool == NULL)
-                 {
-                    log_to_file(log_file, __FILE__, __LINE__, "selector out of memory");
-                    return (-1);
-                 }
-                 for (int j = 0; j<pool_size-1; ++j)
-                    tmp_pool[j] = sel_pool[j];
-                 tmp_pool[pool_size-1] = pool[i];
-                 // push this individual into the pool
-                 //printf("\tsize of tmp_pool:%i\n",sizeof(tmp_pool)/sizeof(tmp_pool[0]));
-                 free(sel_pool);
-                 sel_pool = tmp_pool;
-                 printf("\t%i: sel_pool[%i-1] = pool[%i] = %i\n",__LINE__,pool_size,i,pool[i]);
-                 //sel_pool[pool_size-1] = pool[i];
+                 printf("%i (%e), ",pool[i],f);
+                 sel_pool.push_back(pool[i]);
              }
          }
-         printf("%i: size of sel_pool:%i\n",__LINE__,sizeof(sel_pool)/sizeof(sel_pool[0]));
-         printf("%i: pool_size: %i\n",__LINE__,pool_size);
+         printf("\n");
+         //printf("%i: size of sel_pool:%i\n",__LINE__,sizeof(sel_pool)/sizeof(sel_pool[0]));
+         //printf("%i: pool_size: %i\n",__LINE__,pool_size);
          ++c;   // increment case            
-         pass = (pool_size > 1 && c < dimension); // keep going if needed
-         printf("%i: resetting pool for next case\n",__LINE__); 
-         printf("%i: sel_pool:\t",__LINE__);
-         for (int j = 0; j < pool_size; ++j)
-             printf("%i,",sel_pool[j]);
-         printf("\n");
-         free(pool);
-         pool = (int *) malloc ( pool_size * sizeof(int));
-         memcpy(pool,sel_pool, pool_size * sizeof(int)); 
-         printf("%i: new pool:\t",__LINE__);
-         for (int j = 0; j < pool_size; ++j)
-             printf("%i,",pool[j]);
-         printf("\n");
+         pass = (sel_pool.size() > 1 && c < dimension); // keep going if needed
+         assert(sel_pool.size()>0); 
+         pool = sel_pool;
      }
-     int pick = irand(pool_size);
+     printf("final pool size: %i\n",pool.size());
+     int pick = irand(pool.size());
      int selection = pool[pick];
-     
-     free(pool);
+     printf("selecting %i (pick = %i)\n",selection, pick);  
      return selection;
 
      /// FEMO ///////////

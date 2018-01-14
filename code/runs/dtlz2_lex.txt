@@ -4,8 +4,8 @@ end commandLine
 
 start monParameter
 seed 23
-numberOfRuns 4
-numberOfGenerations 2
+numberOfRuns 1
+numberOfGenerations 20
 outputType offline
 outputSet 1
 debug 1
@@ -16,15 +16,15 @@ start varCommonParameter
 alpha 10
 mu 10
 lambda 10
-dim 5
+dim 10
 
 end varCommonParameter
 
 start varParameter
 problem DTLZ2
 seed 1562469901
-number_decision_variables 100
-maxgen 1000
+number_decision_variables 10
+maxgen 100
 outputfile dtlz_output.txt
 individual_mutation_probability 1
 individual_recombination_probability 1
@@ -40,7 +40,7 @@ start selCommonParameter
 alpha 10
 mu 10
 lambda 10
-dim 5
+dim 10
 
 end selCommonParameter
 

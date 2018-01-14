@@ -8,10 +8,10 @@
 #selectors="ibea nsga2 spea2 lex"
 selectors="lex"
 #variators="dtlz2 knapsack zdt6"
-variators="knapsack"
+variators="dtlz2"
 os="linux";
 
-generation=2
+generation=20
 
 #=================================================
 # DO NOT MAKE ANY CHANGES BELOW THIS LINE

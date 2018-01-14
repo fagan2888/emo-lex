@@ -10,7 +10,7 @@
 
 case $1 in
     run)
-    echo "cd $2_$os"
+    
 	cd $2_$os ;
 	cp ../$3_$os/PISA_cfg . ;
 	./$2 $2_param.txt PISA_ 0.1 &

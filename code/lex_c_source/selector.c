@@ -52,6 +52,7 @@ int main(int argc, char *argv[])
      int returncode; /* storing the values that the state functions return */
      int current_state = 0;
 
+     printf("current_state:%i\n",current_state);
 
      char filenamebase[FILE_NAME_LENGTH_INTERNAL]; /* filename base,
                                                       e.g. "dir/test." */
@@ -305,7 +306,7 @@ int read_ini(int *id_array)
           exit(EXIT_FAILURE);
      }
      
-     printf("ini_file:%s",ini_file); 
+      
      fp = fopen(ini_file, "r");
      assert(fp != NULL);
 
@@ -321,13 +322,16 @@ int read_ini(int *id_array)
           fclose(fp);
           return (1);
      }
-     
+     //debugging
+     printf("reading population from %s...\n",ini_file);
      for(j = 0; j < alpha; j++)
      {
+          
           /* reading index of individual */
           result = fscanf(fp, "%d", &identity); /* fscanf() returns EOF
                                                    if reading fails.*/
-          if (result == EOF) /* file not completely written */
+         printf("ind %i: ",identity);
+         if (result == EOF) /* file not completely written */
           {
                free(objective_value);
                fclose(fp);
@@ -344,8 +348,11 @@ int read_ini(int *id_array)
                     fclose(fp);
                     return (1); /* signalling that reading failed */
                }
+           
+               // debug: print objective values that have been gathered
+               printf("%e ",objective_value[i]);
           }
-          
+
           /* adding individual */
           result = add_individual(identity, objective_value);
           if (result != 0)
@@ -354,7 +361,7 @@ int read_ini(int *id_array)
                fclose(fp);
                return (1);
           }
-          
+          printf("\n");
      }
      
      fscanf(fp, "%s", tag);
@@ -499,11 +506,14 @@ int write_sel(int *identity)
      fp = fopen(sel_file, "w");
      assert(fp != NULL);
      fprintf(fp, "%d\n", mu);  
+     printf("Writing to %s: ",sel_file);
      for (i = 0; i < mu; i++)
      {
+          printf("%d ",identity[i]);
           fprintf(fp, "%d", identity[i]);
           fprintf(fp,"\n");
      }
+     printf("\n");
      fprintf(fp, "END");
      fclose(fp);
      return (0);
@@ -520,12 +530,15 @@ int write_arc()
      assert(fp != NULL);
      fprintf(fp, "%d\n", global_population.size);  
      identity = get_first();
+     printf("writing to %s: ",arc_file);
      while (identity != -1)
      {
+          printf("%d ",identity);
           fprintf(fp, "%d", identity);
           fprintf(fp, "\n");   
           identity = get_next(identity);
      }
+     printf("\n");
      fprintf(fp, "END");
      fclose(fp);
      return (0);

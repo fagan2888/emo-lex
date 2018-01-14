@@ -38,7 +38,7 @@
 /* maximal length of entries in local cfg file */
 #define CFG_NAME_LENGTH 128   /* change the value if you like */
 
-
+#include <vector>
 /*---| declaration of global variables (defined in selector_user.c) |-----*/
 
 extern char *log_file; /* file to log to */
@@ -213,12 +213,12 @@ int irand(int range);
 // shuffle int array
 void shuffle(int* array, size_t n);
 int compare (const void * a, const void * b);
-double median(double *v, int size); 
-double mad(double * x, int size);
+double median(const std::vector<double>& v); 
+double mad(const std::vector<double>& x);
 void calculate_epsilon(int *ids, int size, int dimension, double *epsilon);
 
 ///* choose individual via lexicase selection */
-int lex_choose(int *case_order, double *epsilon, int dimension);
+int lex_choose(int starting_pool_size, int *case_order, double *epsilon, int dimension);
 
 int get_counter(int id);
 
@@ -227,6 +227,8 @@ int increase_counter(int id);
 int decrease_counter(int id);
 
 double get_objective_value(int id, int index);
+
+double min_obj(const std::vector<int>& p, int o);
 
 /**********| addition for LEX end |*******/
 
