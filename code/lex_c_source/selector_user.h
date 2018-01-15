@@ -218,7 +218,7 @@ double mad(const std::vector<double>& x);
 void calculate_epsilon(int *ids, int size, int dimension, double *epsilon);
 
 ///* choose individual via lexicase selection */
-int lex_choose(int starting_pool_size, int *case_order, double *epsilon, int dimension);
+int lex_choose(int * pop, int starting_pool_size, int *case_order, int dimension, double *epsilon);
 
 int get_counter(int id);
 

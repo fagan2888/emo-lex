@@ -426,12 +426,14 @@ int read_var(int *id_array)
           fclose(fp);
           return (1);
      }
-
+     //printf("reading pop...\n");
      for(j = 0; j < lambda; j++)
      {
+          
           /* reading index of individual */
           result = fscanf(fp, "%d", &identity); /* fscanf() returns EOF
                                                    if reading fails.*/     
+          //printf("ind %i: ",identity);
           id_array[j] = identity;
           for (i = 0; i < dimension; i++)
           {
@@ -443,7 +445,9 @@ int read_var(int *id_array)
                     fclose(fp);
                     return (1); /* signalling that reading failed */
                }
+               //printf("%e ",objective_value[i]);
           }
+          //printf("\n");
           /* adding individual */
           result = add_individual(identity, objective_value);
           if (result != 0)
@@ -506,14 +510,14 @@ int write_sel(int *identity)
      fp = fopen(sel_file, "w");
      assert(fp != NULL);
      fprintf(fp, "%d\n", mu);  
-     printf("Writing to %s: ",sel_file);
+     //printf("Writing to %s: ",sel_file);
      for (i = 0; i < mu; i++)
      {
-          printf("%d ",identity[i]);
+          //printf("%d ",identity[i]);
           fprintf(fp, "%d", identity[i]);
           fprintf(fp,"\n");
      }
-     printf("\n");
+     //printf("\n");
      fprintf(fp, "END");
      fclose(fp);
      return (0);
@@ -530,15 +534,15 @@ int write_arc()
      assert(fp != NULL);
      fprintf(fp, "%d\n", global_population.size);  
      identity = get_first();
-     printf("writing to %s: ",arc_file);
+     //printf("writing to %s: ",arc_file);
      while (identity != -1)
      {
-          printf("%d ",identity);
+          //printf("%d ",identity);
           fprintf(fp, "%d", identity);
           fprintf(fp, "\n");   
           identity = get_next(identity);
      }
-     printf("\n");
+     //printf("\n");
      fprintf(fp, "END");
      fclose(fp);
      return (0);

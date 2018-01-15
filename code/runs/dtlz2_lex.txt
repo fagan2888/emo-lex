@@ -13,9 +13,9 @@ debug 1
 end monParameter
 
 start varCommonParameter
-alpha 10
-mu 10
-lambda 10
+alpha 100
+mu 100
+lambda 100
 dim 10
 
 end varCommonParameter
@@ -37,9 +37,9 @@ eta_recombination 15
 end varParameter
 
 start selCommonParameter
-alpha 10
-mu 10
-lambda 10
+alpha 100
+mu 100
+lambda 100
 dim 10
 
 end selCommonParameter

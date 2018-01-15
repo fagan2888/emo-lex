@@ -1,6 +1,6 @@
 seed 23
 numberOfRuns 1
-numberOfGenerations 20
+numberOfGenerations 5000
 outputType offline
 outputSet 1
 debug 1

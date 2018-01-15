@@ -234,6 +234,11 @@ int state3()
      int result; /* stores return values of called functions */
      int *offspring_identities; /* array with IDs filled by read_var() */
      int *parent_identities; /* array with IDs of parents */
+     // get current archive ids
+     std::vector<int> current_arc; 
+     current_arc.push_back(get_first());
+     for (unsigned i = 1; i< get_size(); ++i)
+         current_arc.push_back(get_next(current_arc[i-1]));
 
      offspring_identities = (int *) malloc(lambda * sizeof(int)); 
      if (offspring_identities == NULL)
@@ -241,16 +246,7 @@ int state3()
           log_to_file(log_file, __FILE__, __LINE__, "selector out of memory");
           return (1);
      }
-//     // clear global population
-//
-//     int id = get_first();
-//     int idn;
-//     while( get_size() != 0){
-//         printf("removing ind %i",id);
-//         idn = get_next(id);
-//         remove_individual(id);
-//         id = idn;
-//     }
+     
      parent_identities = (int *) malloc(mu * sizeof(int)); 
      if (parent_identities == NULL)
      {
@@ -265,6 +261,11 @@ int state3()
 
      /**********| added for LEX |**************/
 
+     // clear old global population 
+     for (unsigned i = 0; i < current_arc.size(); -++i)
+         remove_individual(current_arc[i]);
+    
+     
      result = select_ind(lambda, offspring_identities,
                          parent_identities, dimension);
      
@@ -437,53 +438,53 @@ int select_ind(int size, int *population, int *parents,
       * @params dimension: number of objectives
       */
      
-     printf("select_ind...\n");
-     printf("size:%i\n",size);
+     //printf("select_ind...\n");
+     //printf("size:%i\n",size);
      assert(dimension >= 0);
      // if continuous objectives, calculate epsilon
      double * epsilon = (double *) malloc(dimension * sizeof(double));
      if (eplex){
-         printf("calculating epsilon\n"); 
+         //printf("calculating epsilon\n"); 
          calculate_epsilon(population, size, dimension, epsilon);
      }
      else{
-         printf("setting epsilon to zero\n"); 
+         //printf("setting epsilon to zero\n"); 
          for (int i =0; i<dimension; ++i)
              epsilon[i] = 0;
      }
      
-     printf("%i: population semantics:\n---\n",__LINE__);
-     for (int i = 0; i < get_size(); ++i)
-     {
-         printf("ind %i:\t",i);
-         for (int j = 0; j < dimension; ++j)
-            printf("%e,",get_objective_value(i,j));    
-         printf("\n");
-     }
-     printf("---\nmin:\t");
-     std::vector<int> pop(mu);
-     std::iota(pop.begin(),pop.end(),0);
-     for (int i = 0; i<dimension; ++i)
-         printf("%e,",min_obj(pop,i));
-     
-     printf("\n---\nep:\t");
-     for (int i = 0; i<dimension; ++i)
-         printf("%e,",epsilon[i]);
-     printf("\n---\n");
-     printf("starting selection...\n");
+     //printf("%i: population semantics:\n---\n",__LINE__);
+     //for (int i = 0; i < get_size(); ++i)
+     //{
+     //    printf("ind %i:\t",population[i]);
+     //    for (int j = 0; j < dimension; ++j)
+     //       printf("%e,",get_objective_value(population[i],j));    
+     //    printf("\n");
+     //}
+     //printf("---\nmin:\t");
+     //std::vector<int> pop(mu);
+     //std::iota(pop.begin(),pop.end(),0);
+     //for (int i = 0; i<dimension; ++i)
+     //    printf("%e,",min_obj(pop,i));
+     //
+     //printf("\n---\nep:\t");
+     //for (int i = 0; i<dimension; ++i)
+     //    printf("%e,",epsilon[i]);
+     //printf("\n---\n");
+     //printf("starting selection...\n");
      
      /* choose mu individuals by lexicase selection */
-      
+     #pragma omp parallel for   
      for(int i = 0; i < mu; i++)
      {
-         printf("selection %i\n",i);
+         //printf("selection %i\n",i);
          // cases, i.e. objectives, to consider each selection event
          int *cases = (int *) malloc(dimension * sizeof(int));
          for (int i = 0; i<dimension; ++i)
             cases[i] = i;                
          // shuffle objectives
          shuffle(cases, dimension);
-         int pos = lex_choose(size,cases,epsilon,dimension);
+         int pos = lex_choose(population, size, cases, dimension, epsilon);
         // if (pos == -1) /* Choosing failed. */
         //      return (1);
          parents[i] = pos;
@@ -500,7 +501,7 @@ void calculate_epsilon(int *ids, int popsize, int dimension, double *epsilon)
         std::vector<double> objs;
         for (int j = 0; j<popsize; ++j)
             objs.push_back( get_objective_value(j,i) );
-        printf("epsilon[%i] = %e..\n",i,mad(objs));
+        //printf("epsilon[%i] = %e..\n",i,mad(objs));
         epsilon[i] = mad(objs);
     }
 
@@ -532,15 +533,15 @@ double mad(const std::vector<double>& x)
     // returns median absolute deviation (MAD)
     // get median of x
     double x_median = median(x);
-    printf("x_median: %e\n",x_median);
+    //printf("x_median: %e\n",x_median);
     //calculate absolute deviation from median
     std::vector<double> dev;
     for (int i =0; i < x.size(); ++i)
         dev.push_back(fabs(x[i] - x_median));
-    printf("deviations: ");
+    //printf("deviations: ");
     for (int i =0; i<dev.size(); ++i)
-        printf("%e ",dev[i]);
-    printf("\n");
+        //printf("%e ",dev[i]);
+    //printf("\n");
     // return median of the absolute deviation
     return median(dev);
 }
@@ -567,19 +568,19 @@ double min_obj(const std::vector<int>& p, int o)
 /* Chooses one individual uniformly among those with the lowest counter.
    Returns ID of chosen individual.
    Returns -1 of choosing failed for any reason. */
-int lex_choose(int starting_pool_size, int *cases, double *epsilon, int dimension) 
+int lex_choose(int * pop, int starting_pool_size, int *cases, int dimension, double *epsilon) 
 {  
      std::vector<int> pool;
      for (int i =0;i<starting_pool_size; ++i)
-         pool.push_back(i);
+         pool.push_back(pop[i]);
      //printf("%i: initial pool: \t",__LINE__);
      //for (int i = 0; i<starting_pool_size; ++i)
      //    printf("%i,",pool[i]);
      //printf("\n");
-     printf("%i: cases: \t",__LINE__);
-     for (int i = 0; i<dimension; ++i)
-         printf("%i,",cases[i]);
-     printf("\n");  
+     //printf("%i: cases: \t",__LINE__);
+     //for (int i = 0; i<dimension; ++i)
+     //    printf("%i,",cases[i]);
+     //printf("\n");  
      
      bool pass = true;
      int c = 0; 
@@ -590,13 +591,13 @@ int lex_choose(int starting_pool_size, int *cases, double *epsilon, int dimensio
          
          std::vector<int> sel_pool;
 
-         printf("pool: ");
-         for (unsigned i =0; i<pool.size();++i) 
-             printf("%i(%e) ",pool[i],get_objective_value(pool[i],cases[c]));
-         printf("\n");
+         //printf("pool: ");
+         //for (unsigned i =0; i<pool.size();++i) 
+         //    printf("%i(%e) ",pool[i],get_objective_value(pool[i],cases[c]));
+         //printf("\n");
          double threshold = min_obj(pool,cases[c]) + epsilon[cases[c]];
-         printf("case %i threshold: %e + %e = %e\n",cases[c],min_obj(pool,cases[c]),epsilon[cases[c]],threshold);
-         printf("sel_pool: ");
+         //printf("case %i threshold: %e + %e = %e\n",cases[c],min_obj(pool,cases[c]),epsilon[cases[c]],threshold);
+         //printf("sel_pool: ");
          for (int i = 0; i < pool.size(); ++i)
          {
              double f = get_objective_value(pool[i],cases[c]);
@@ -604,11 +605,11 @@ int lex_choose(int starting_pool_size, int *cases, double *epsilon, int dimensio
              if (f <= threshold)
              {
                  // add pool[i] to winners
-                 printf("%i (%e), ",pool[i],f);
+                 //printf("%i (%e), ",pool[i],f);
                  sel_pool.push_back(pool[i]);
              }
          }
-         printf("\n");
+         //printf("\n");
          //printf("%i: size of sel_pool:%i\n",__LINE__,sizeof(sel_pool)/sizeof(sel_pool[0]));
          //printf("%i: pool_size: %i\n",__LINE__,pool_size);
          ++c;   // increment case            
@@ -616,10 +617,10 @@ int lex_choose(int starting_pool_size, int *cases, double *epsilon, int dimensio
          assert(sel_pool.size()>0); 
          pool = sel_pool;
      }
-     printf("final pool size: %i\n",pool.size());
+     //printf("final pool size: %i\n",pool.size());
      int pick = irand(pool.size());
      int selection = pool[pick];
-     printf("selecting %i (pick = %i)\n",selection, pick);  
+     //printf("selecting %i (pick = %i)\n",selection, pick);  
      return selection;
 
      /// FEMO ///////////

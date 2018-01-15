@@ -17,7 +17,7 @@ case $1 in
 	cd ../$3_$os ;
 	./$3 $3_param.txt PISA_ 0.1 &
 	cd ../monitor_$os
-	./monitor ../$3_$os/$3_param.txt ../$3_$os/PISA_ ../$2_$os/$2_param.txt ../$2_$os/PISA_ monitor_param.txt ../runs/$3_$2 0.1 ;
+	./monitor ../$3_$os/$3_param.txt ../$3_$os/PISA_ ../$2_$os/$2_param.txt ../$2_$os/PISA_ monitor_param_$4.txt ../runs/$3_$2 0.1 ;
 	cd ..
 	;;
     bounds) 
