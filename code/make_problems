@@ -1,0 +1,45 @@
+#!/bin/bash
+# this script makes variants of the dtlz problems
+# William La Cava 2018
+
+probs="1 2 3 4"
+ms="25 50 75 100"
+
+for p in $probs ; do 
+    for m in $ms ; do
+        name=dtlz"$p"_m"$m"
+        echo $name
+        # copy folder
+        cp -r dtlz2_linux "$name"_linux
+        # rename executable
+        mv "$name"_linux/dtlz2 "$name"_linux/"$name" 
+        # rename parameter file
+        mv "$name"_linux/dtlz2_param.txt "$name"_linux/"$name"_param.txt 
+        offset=$(($m + 9))
+        if [ $m == 1 ] ; then
+            offset=$(( $m + 4 ))
+        fi
+        # rename problem
+        sed -i -e "s/^problem.*/problem DTLZ$p/g" "$name"_linux/"$name"_param.txt
+        # set number of decision variables
+        sed -i -e "s/^number_decision_variables.*/number_decision_variables $offset/g" "$name"_linux/"$name"_param.txt 
+        # set output file
+        sed -i -e "s/^outputfile.*/outputfile "$name"_output\.txt/g" "$name"_linux/"$name"_param.txt 
+      
+        # set population size
+        if [ $m == 25 ]; then
+            pop=125
+        elif [ $m == 50 ] ; then
+            pop=250 
+        elif [ $m == 75 ] ; then
+            pop=375
+        elif [ $m == 100 ] ; then
+            pop=500
+        fi
+        
+        sed -i -e "s/^alpha.*/alpha $pop/g" "$name"_linux/PISA_cfg
+        sed -i -e "s/^mu.*/mu $pop/g" "$name"_linux/PISA_cfg
+        sed -i -e "s/^lambda.*/lambda $pop/g" "$name"_linux/PISA_cfg
+        sed -i -e "s/^dim.*/dim $m/g" "$name"_linux/PISA_cfg
+    done ;
+done ;

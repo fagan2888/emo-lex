@@ -1,0 +1,8 @@
+#!/bin/bash
+rm lex_linux/lex
+rm lex_linux/lex_error.log
+cd lex_c_source 
+make clean 
+make  
+cp lex ../lex_linux/
+cd ..
