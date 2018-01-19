@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
      int returncode; /* storing the values that the state functions return */
      int current_state = 0;
 
-     printf("current_state:%i\n",current_state);
+     //printf("current_state:%i\n",current_state);
 
      char filenamebase[FILE_NAME_LENGTH_INTERNAL]; /* filename base,
                                                       e.g. "dir/test." */
@@ -323,14 +323,14 @@ int read_ini(int *id_array)
           return (1);
      }
      //debugging
-     printf("reading population from %s...\n",ini_file);
+     //printf("reading population from %s...\n",ini_file);
      for(j = 0; j < alpha; j++)
      {
           
           /* reading index of individual */
           result = fscanf(fp, "%d", &identity); /* fscanf() returns EOF
                                                    if reading fails.*/
-         printf("ind %i: ",identity);
+         //printf("ind %i: ",identity);
          if (result == EOF) /* file not completely written */
           {
                free(objective_value);
@@ -350,7 +350,7 @@ int read_ini(int *id_array)
                }
            
                // debug: print objective values that have been gathered
-               printf("%e ",objective_value[i]);
+               //printf("%e ",objective_value[i]);
           }
 
           /* adding individual */
@@ -361,7 +361,7 @@ int read_ini(int *id_array)
                fclose(fp);
                return (1);
           }
-          printf("\n");
+          //printf("\n");
      }
      
      fscanf(fp, "%s", tag);

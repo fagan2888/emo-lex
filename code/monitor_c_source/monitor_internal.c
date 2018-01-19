@@ -203,6 +203,7 @@ int read_common_parameters(char *filename)
      }
      else
      {
+         printf("alpha:%i, new_alpha:%i",alpha,new_alpha);
 	 assert(new_alpha == alpha);
 	 assert(new_mu == mu);
 	 assert(new_lambda == lambda);

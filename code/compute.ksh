@@ -1,13 +1,13 @@
-#! /usr/bin/ksh
+#! /bin/bash
 #
-# compute.ksh: UNIX/LINUX complement to compute.bat
+# compute.sh: UNIX/LINUX complement to compute.bat
 #
 # Eckart Zitzler, ETH Zurich, Feb 18, 2005
 
 #=================================================
 # DO NOT MAKE ANY CHANGES BELOW THIS LINE
 #=================================================
-
+os='linux'
 case $1 in
     run)
     

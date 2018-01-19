@@ -2,4 +2,4 @@ seed 1
 tournament 5
 mating 1
 bound 2000
-nrOfSamples -1
+nrOfSamples 10000

@@ -2,7 +2,7 @@ seed 23
 
 numberOfRuns 2
 numberOfGenerations 2
-outputType offline
+outputType online
 
 outputSet 0
 

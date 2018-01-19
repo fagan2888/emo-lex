@@ -190,7 +190,7 @@ int state1()
      }
      
      /**********| addition for LEX end |*******/
-     printf("write_sel\n");
+     //printf("write_sel\n");
      result = write_sel(PISA_identities);     /* write sel file */
      if(result != 0)
      {
@@ -200,7 +200,7 @@ int state1()
      
      free(PISA_identities);
      free(result_identities);
-     printf("write_arc\n");
+     //printf("write_arc\n");
      result = write_arc();     /* write arc file
                                   (individuals in global population) */
      if(result != 0)
@@ -254,7 +254,7 @@ int state3()
           return (1);
      }
 
-     printf("read_var\n");
+     //printf("read_var\n");
      result = read_var(offspring_identities);
      if (result == 1) /* if some file reading error occurs, return 2 */
           return (2);
@@ -288,7 +288,7 @@ int state3()
      free(offspring_identities);
 
      // clear global population
-     printf("write_arc\n");
+     //printf("write_arc\n");
      result = write_arc();
      
      if(result != 0)

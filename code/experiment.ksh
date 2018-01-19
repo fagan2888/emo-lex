@@ -16,22 +16,28 @@ export os
 
 
 if [[ $1 != "compare" ]] ; then
+    count=0
     for sel in $selectors ; do
-	for var in $variators ; do
-        m=${var#*_m}
-        echo $m
-        # set population size
-        if [ $m == 25 ]; then
-            generation=2000
-        elif [ $m == 50 ] ; then
-            generation=3000
-        elif [ $m == 75 ] ; then
-            generation=4000
-        elif [ $m == 100 ] ; then
-            generation=5000
-        fi
-	    . ./compute.ksh run $sel $var $generation
-	done ;
+        for var in $variators ; do
+            m=${var#*_m}
+            echo $var $sel
+            # set population size
+            if [ $m == 25 ]; then
+                generation=2000
+            elif [ $m == 50 ] ; then
+                generation=3000
+            elif [ $m == 75 ] ; then
+                generation=4000
+            elif [ $m == 100 ] ; then
+                generation=5000
+            fi
+            . ./compute.ksh run $sel $var $generation &
+            (( count ++ ))
+            if (( count = 20 )) ; then
+                wait
+                count = 0
+            fi
+        done ;
     done ;
 fi
 

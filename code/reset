@@ -1,13 +1,24 @@
 #!/bin/bash
 
-selectors="lex"
+selectors="lex nsga2 hype epsmoea"
 #variators="dtlz2 knapsack zdt6"
-variators="dtlz1_m25 dtlz1_m50 dtlz1_m75 dtlz1_m100 dtlz2_m25 dtlz2_m50 dtlz2_m75 dtlz2_m100 dtlz3_m25 dtlz3_m50 dtlz3_m75 dtlz3_m100 dtlz4_m25 dtlz4_m50 dtlz4_m75 dtlz4_m100"
+variators="dtlz1_m5 dtlz1_m25 dtlz1_m50 dtlz1_m75 dtlz1_m100 dtlz2_m5 dtlz2_m25 dtlz2_m50 dtlz2_m75 dtlz2_m100 dtlz3_m5 dtlz3_m25 dtlz3_m50 dtlz3_m75 dtlz3_m100 dtlz4_m5 dtlz4_m25 dtlz4_m50 dtlz4_m75 dtlz4_m100"
 
 for var in $variators ; do
-    rm "$var"_linux/PISA_ini    
-    rm "$var"_linux/PISA_sta
-    rm "$var"_linux/PISA_sel
-    rm "$var"_linux/PISA_arc
-    rm "$var"_linux/PISA_var
+    rm "$var"_linux/*_ini    
+    rm "$var"_linux/*_sta
+    rm "$var"_linux/*_sel
+    rm "$var"_linux/*_arc
+    rm "$var"_linux/*_var
+    rm "$var"_linux/*.log 
 done
+for sel in $selectors ; do 
+    rm "$sel"_linux/*.log
+    rm "$sel"_linux/*_ini    
+    rm "$sel"_linux/*_sta
+    rm "$sel"_linux/*_sel
+    rm "$sel"_linux/*_arc
+    rm "$sel"_linux/*_var
+done
+rm runs/bsub/*
+rm runs/*

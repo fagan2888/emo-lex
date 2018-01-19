@@ -3,7 +3,7 @@
 # William La Cava 2018
 
 probs="1 2 3 4"
-ms="25 50 75 100"
+ms="5 25 50 75 100"
 
 for p in $probs ; do 
     for m in $ms ; do
@@ -15,8 +15,9 @@ for p in $probs ; do
         mv "$name"_linux/dtlz2 "$name"_linux/"$name" 
         # rename parameter file
         mv "$name"_linux/dtlz2_param.txt "$name"_linux/"$name"_param.txt 
+        
         offset=$(($m + 9))
-        if [ $m == 1 ] ; then
+        if [ $p == 1 ] ; then
             offset=$(( $m + 4 ))
         fi
         # rename problem
@@ -27,14 +28,16 @@ for p in $probs ; do
         sed -i -e "s/^outputfile.*/outputfile "$name"_output\.txt/g" "$name"_linux/"$name"_param.txt 
       
         # set population size
-        if [ $m == 25 ]; then
-            pop=125
+        if [ $m = 5 ] ; then
+            pop=50
+        elif [ $m == 25 ]; then
+            pop=50
         elif [ $m == 50 ] ; then
-            pop=250 
+            pop=100 
         elif [ $m == 75 ] ; then
-            pop=375
+            pop=150
         elif [ $m == 100 ] ; then
-            pop=500
+            pop=200
         fi
         
         sed -i -e "s/^alpha.*/alpha $pop/g" "$name"_linux/PISA_cfg
