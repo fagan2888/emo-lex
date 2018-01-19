@@ -1,0 +1,6 @@
+#!/bin/bash
+make clean
+make
+cp sample_ini.bak sample_ini
+rm sample_sta; touch sample_sta; echo "1" >> sample_sta
+

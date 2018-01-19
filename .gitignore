@@ -3,4 +3,4 @@ code/*.pdf
 *.txt
 tags
 code/tests/*.*
-
+*.o
