@@ -19,12 +19,10 @@ case $1 in
 	./"$3" "$3"_param.txt "$2"_"$3"_ 0.1 &
 	cd ../monitor_"$os"
     
-    echo "./monitor ../"$3"_"$os"/"$3"_param.txt ../"$3"_"$os"/"$2"_"$3"_t"$5"_
-    ../"$2"_"$os"/"$2"_param.txt ../"$2"_"$os"/"$2"_"$3"_t"$5"_ monitor_param_"$4".txt ../runs/"$3"_"$2"_t"$5"_ 0.1 ;"
+    echo "./monitor ../"$3"_"$os"/"$3"_param.txt ../"$3"_"$os"/"$2"_"$3"_
+    ../"$2"_"$os"/"$2"_param.txt ../"$2"_"$os"/"$2"_"$3"_ monitor_param_"$4".txt ../runs/"$3"_"$2" 0.1 ;"
     
-    ./monitor ../"$3"_"$os"/"$3"_param.txt ../"$3"_"$os"/"$2"_"$3"_t"$5"_
-              ../"$2"_"$os"/"$2"_param.txt ../"$2"_"$os"/"$2"_"$3"_t"$5"_ 
-              monitor_param_"$4".txt ../runs/"$3"_"$2"_t"$5"_ 0.1 ;
+    ./monitor ../"$3"_"$os"/"$3"_param.txt ../"$3"_"$os"/"$2"_"$3"_ ../"$2"_"$os"/"$2"_param.txt ../"$2"_"$os"/"$2"_"$3"_ monitor_param_"$4".txt ../runs/"$3"_"$2" 0.1 ;
 	cd ..
 	;;
     bounds) 
@@ -79,8 +77,8 @@ case $1 in
     eaftests)
     if [[ $2 < "$3" ]] ; then 
         cd attainment_"$os" ;
-	eaf -i ../tests/tmp ../tests/"$4"_"$2"_norm."$5" ../tests/"$4"_"$3"_norm."$5" > ../tests/dump ;
-	eaf-test ../tests/tmp > ../tests/"$4"_"$2"_"$3"_eaftest."$5" ;
+	eaf -i ../tests/tmp ../tests/"$4"_"$2"_norm ../tests/"$4"_"$3"_norm > ../tests/dump ;
+	eaf-test ../tests/tmp > ../tests/"$4"_"$2"_"$3"_eaftest ;
 	rm ../tests/dump ;
 	rm ../tests/tmp ;
 	cd .. ;
@@ -89,9 +87,9 @@ case $1 in
     ranktests)
     if [[ $2 < $3 ]] ; then 
     	cd indicators_"$os" ;
-	dominance-rank ../tests/"$4"_"$2"_norm."$5" ../tests/"$4"_"$3"_norm."$5" ../tests/dump > ../tests/tmp ;
+	dominance-rank ../tests/"$4"_"$2"_norm ../tests/"$4"_"$3"_norm ../tests/dump > ../tests/tmp ;
 	cd ../statistics_"$os" ;
-	mann-whit ../tests/tmp emptyparam.txt ../tests/"$4"_"$2"_"$3"_ranktest."$5" ;
+	mann-whit ../tests/tmp emptyparam.txt ../tests/"$4"_"$2"_"$3"_ranktest ;
 	rm ../tests/dump ;
 	rm ../tests/tmp ;
 	cd .. ;

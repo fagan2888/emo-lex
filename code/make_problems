@@ -9,11 +9,18 @@ for p in $probs ; do
     for m in $ms ; do
         name=dtlz"$p"_m"$m"
         echo $name
+        echo "mkdir "$name"_linux"
+        mkdir "$name"_linux
         # copy folder
-        cp -r dtlz2_linux "$name"_linux
+        echo "cp dtlz2_linux/* "$name"_linux/*"
+        cp dtlz2_linux/* "$name"_linux/
+        #echo "ls $name_linux:"
+        #ls "$name"_linux
         # rename executable
+        echo "mv "$name"_linux/dtlz2 "$name"_linux/"$name""
         mv "$name"_linux/dtlz2 "$name"_linux/"$name" 
         # rename parameter file
+        echo "mv "$name"_linux/dtlz2_param.txt "$name"_linux/"$name"_param.txt"
         mv "$name"_linux/dtlz2_param.txt "$name"_linux/"$name"_param.txt 
         
         offset=$(($m + 9))

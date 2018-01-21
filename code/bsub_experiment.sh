@@ -18,7 +18,7 @@ elif [ $# -eq 2 ] ; then
     variators=$2
 fi
 
-trials=30
+
 os="linux";
 
 export os
@@ -28,17 +28,14 @@ generation=1000
 path=${PWD}
 for sel in $selectors ; do
     for var in $variators ; do
-        until [ $trials -eq 0 ] ; do
-            m=${var#*_m}
+        m=${var#*_m}
 #            echo $var $sel $t
-          
-            out_file="$path/runs/bsub/$sel_$var_t$t_%J.out"
-            err_file="$path/runs/bsub/$sel_$var_t$t%J.err"
+        out_file="$path/runs/bsub/$sel_$var_%J.out"
+        err_file="$path/runs/bsub/$sel_$var%J.err"
 #            echo "out_file:$out_file"
-            echo "bsub -o $out_file -e $err_file -n 4 -q moore7_normal -R "span[hosts=1]" -J "$sel"_"$var" "./compute.sh run $sel $var $generation $trials""
-           # bsub -o $out_file -e $err_file -n 4 -q moore7_normal -R "span[hosts=1]" -J "$sel"_"$var" "./compute.sh run $sel $var $generation $trials"
-           ((trials--))
-       done ;
+        echo "bsub -o $out_file -e $err_file -n 4 -q moore7_normal -R "span[hosts=1]" -J
+        "$sel"_"$var" "./compute.sh run $sel $var $generation""
+        bsub -o $out_file -e $err_file -n 4 -q moore7_normal -R "span[hosts=1]" -J "$sel"_"$var" "./compute.sh run $sel $var $generation"
    done ;
 done ;
 
