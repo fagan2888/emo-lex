@@ -4,3 +4,7 @@ code/*.pdf
 tags
 code/tests/*.*
 *.o
+*.aux
+*.out
+*.synctez.gz
+*.cut
