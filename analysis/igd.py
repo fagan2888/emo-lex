@@ -12,9 +12,9 @@ def igd(X, problem):
     X = np.asarray(X)
     PF = pd.read_csv('pareto_fronts/'+problem +'.pf',header=None).values
     m = int(problem.split('m')[-1])
-    print('PF shape:',PF.shape, 'X shape:',X.shape)
-    nbrs= NearestNeighbors(n_neighbors=1,algorithm='ball_tree').fit(PF)
+    #print('PF shape:',PF.shape, 'X shape:',X.shape)
+    nbrs= NearestNeighbors(n_neighbors=1,algorithm='ball_tree').fit(X)
 
-    d,i = nbrs.kneighbors(X)
-    
+    d,i = nbrs.kneighbors(PF)
+    assert(len(d)==PF.shape[0])    
     return np.mean(d)

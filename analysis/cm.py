@@ -13,7 +13,7 @@ import sys
 
 def cm(X,one=False):
     if one:
-        return np.mean([np.sum([i for i in x])-0.5 for x in X])
+        return np.mean([np.abs(np.sum([i for i in x])-0.5) for x in X])
     else:
         return np.mean([np.abs(np.sum([i**2 for i in x])-1.0) for x in X])
 #X = []

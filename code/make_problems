@@ -3,7 +3,7 @@
 # William La Cava 2018
 
 probs="1 2 3 4"
-ms="5 25 50 75 100"
+ms="3 5 25 50 75 100"
 
 for p in $probs ; do 
     for m in $ms ; do
@@ -12,7 +12,7 @@ for p in $probs ; do
         echo "mkdir "$name"_linux"
         mkdir "$name"_linux
         # copy folder
-        echo "cp dtlz2_linux/* "$name"_linux/*"
+        echo "cp dtlz2_linux/* "$name"_linux/"
         cp dtlz2_linux/* "$name"_linux/
         #echo "ls $name_linux:"
         #ls "$name"_linux
@@ -35,16 +35,18 @@ for p in $probs ; do
         sed -i -e "s/^outputfile.*/outputfile "$name"_output\.txt/g" "$name"_linux/"$name"_param.txt 
       
         # set population size
-        if [ $m = 5 ] ; then
+        if [ $m = 3 ] ; then
             pop=50
+        elif [ $m = 5 ] ; then
+            pop=100
         elif [ $m == 25 ]; then
-            pop=50
+            pop=125
         elif [ $m == 50 ] ; then
-            pop=100 
+            pop=250 
         elif [ $m == 75 ] ; then
-            pop=150
+            pop=375
         elif [ $m == 100 ] ; then
-            pop=200
+            pop=500
         fi
         
         sed -i -e "s/^alpha.*/alpha $pop/g" "$name"_linux/PISA_cfg
